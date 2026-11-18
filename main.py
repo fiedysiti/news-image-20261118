@@ -10,6 +10,7 @@ Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
     mkdir -p out && MAKEFUN_OUTPUT_DIR=out python3 main.py
 """
 
+import hashlib
 import os
 import shutil
 from pathlib import Path
@@ -18,4 +19,19 @@ OUTPUT_DIR = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
 SOURCE = Path(__file__).resolve().with_name("entry.png")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-shutil.copyfile(SOURCE, OUTPUT_DIR / "entry.png")
+dest = OUTPUT_DIR / "entry.png"
+shutil.copyfile(SOURCE, dest)
+
+
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+# The grader runs this program twice and requires byte-identical output:
+# refuse to finish silently if the copy ever differs from the source image.
+if _sha256(SOURCE) != _sha256(dest):
+    raise SystemExit("entry.png copy failed verification")
